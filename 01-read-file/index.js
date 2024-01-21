@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const { stdout } = process;
-const readFile = fs.createReadStream(path.join(__dirname, 'text.txt'));
+const { createReadStream } = require('fs');
+const { join } = require('path');
+const { stdout } = require('process');
+const readFile = createReadStream(join(__dirname, 'text.txt'));
 
 let data = '';
 

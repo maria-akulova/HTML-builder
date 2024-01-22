@@ -14,7 +14,7 @@ function copy(fileName) {
   copyFile(join(currentFolder, fileName), join(targetFolder, fileName));
 }
 
-function copyFileToTargetFolder() {
+function copyFilesToTargetFolder() {
   readdir(currentFolder, {
     withFileTypes: true,
   }).then((files) => {
@@ -34,5 +34,5 @@ rm(targetFolder, {
     createTargetDirectory();
   })
   .finally(() => {
-    copyFileToTargetFolder();
+    copyFilesToTargetFolder();
   });

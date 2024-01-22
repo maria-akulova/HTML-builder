@@ -33,7 +33,7 @@ const { join, extname } = require('path');
 
 const targetFolder = join(__dirname, 'project-dist');
 const targetFile = join(targetFolder, 'bundle.css');
-const readFileFromFolder = join(__dirname, 'test-files', 'styles');
+const readFileFromFolder = join(__dirname, 'styles');
 let result = [];
 
 async function writeToTargetFile() {
@@ -51,14 +51,13 @@ async function copyFilesToTargetFolder() {
   const files = await readdir(readFileFromFolder, { withFileTypes: true });
 
   await Promise.all(
-    files.map(async (file) => {
+    files.sort().map(async (file) => {
       if (file.isFile() && extname(file.name).slice(1) === 'css') {
         await saveFileToArray(file.name);
       }
     }),
   );
+  await writeToTargetFile();
 }
 
-rm(targetFile, { force: true })
-  .then(copyFilesToTargetFolder)
-  .finally(writeToTargetFile);
+rm(targetFile, { force: true }).then(copyFilesToTargetFolder);

@@ -30,9 +30,5 @@ rm(targetFolder, {
   recursive: true,
   force: true,
 })
-  .then(function () {
-    createTargetDirectory();
-  })
-  .finally(() => {
-    copyFilesToTargetFolder();
-  });
+  .then(createTargetDirectory)
+  .finally(copyFilesToTargetFolder);

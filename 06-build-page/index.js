@@ -1,9 +1,7 @@
 const { join, extname } = require('path');
-const { constants, access } = require('fs');
 
 const {
   mkdir,
-  rmdir,
   rm,
   readdir,
   writeFile,
@@ -14,47 +12,82 @@ const {
 const targetFolder = join(__dirname, 'project-dist');
 const targetAssetFolder = join(targetFolder, 'assets');
 const currentAssetsFolder = join(__dirname, 'assets');
+const stylesFolder = join(__dirname, 'styles');
 const targetStyleFile = join(targetFolder, 'style.css');
+const templateFile = join(__dirname, 'template.html');
 const indexFile = join(targetFolder, 'index.html');
-const readFileFromFolder = join(__dirname, 'styles');
+const componentFolder = join(__dirname, 'components');
+const typeFiles = 'css';
 
-let result = [];
-
-function createTargetDirectory(folder) {
-  mkdir(folder, {
+async function createDirectory(folder) {
+  await mkdir(folder, {
     recursive: true,
   });
 }
 
-async function saveFileToArray(fileName) {
-  const content = await readFile(join(readFileFromFolder, fileName), {
+async function saveFileToArray(fileName, arr) {
+  const content = await readFile(join(stylesFolder, fileName), {
     encoding: 'utf-8',
   });
-  result.push(content);
-  result.push('\n');
+  arr.push(content);
+  arr.push('\n');
 }
 
-async function joinFilesToFile() {
-  const files = await readdir(readFileFromFolder, { withFileTypes: true });
+async function mergeFiles(resultFile, sourceFolder, fileType) {
+  let result = [];
+
+  await rm(resultFile, { force: true });
+  const files = await readdir(sourceFolder, { withFileTypes: true });
 
   await Promise.all(
     files.sort().map(async (file) => {
-      if (file.isFile() && extname(file.name).slice(1) === 'css') {
-        await saveFileToArray(file.name);
+      if (file.isFile() && extname(file.name).slice(1) === fileType) {
+        await saveFileToArray(file.name, result);
       }
     }),
   );
-  await writeFile(targetStyleFile, result);
+  await writeFile(resultFile, result);
 }
 
-createTargetDirectory(targetFolder);
-copyFile(join(__dirname, 'template.html'), indexFile);
+async function createHtmlFromComponents(
+  resultFile,
+  templateFile,
+  sourceFolder,
+) {
+  const typeFiles = 'html';
+  await copyFile(templateFile, resultFile);
 
-rm(targetStyleFile, { force: true }).then(joinFilesToFile);
+  const htmlComponents = await readdir(sourceFolder, {
+    withFileTypes: true,
+  });
+  let indexHtmlData = await readFile(resultFile, { encoding: 'utf-8' });
+
+  await Promise.all(
+    htmlComponents.map(async (component) => {
+      if (
+        component.isFile() &&
+        extname(component.name).slice(1) === typeFiles
+      ) {
+        const componentData = await readFile(
+          join(sourceFolder, component.name),
+          {
+            encoding: 'utf-8',
+          },
+        );
+        indexHtmlData = indexHtmlData.replace(
+          `{{${component.name.split('.')[0]}}}`,
+          componentData,
+        );
+      }
+    }),
+  );
+
+  await writeFile(resultFile, indexHtmlData);
+}
 
 async function copyDirectory(source, target) {
   await rm(target, { force: true, recursive: true }).then(
-    await mkdir(target, { recursive: true }),
+    await createDirectory(target),
   );
 
   const files = await readdir(source, { withFileTypes: true });
@@ -73,4 +106,7 @@ async function copyDirectory(source, target) {
   );
 }
 
+createDirectory(targetFolder);
+mergeFiles(targetStyleFile, stylesFolder, typeFiles);
 copyDirectory(currentAssetsFolder, targetAssetFolder);
+createHtmlFromComponents(indexFile, templateFile, componentFolder);
